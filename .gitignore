@@ -400,3 +400,4 @@ fabric.properties
 *.log
 !/spreadsheets/~$devices.xlsx
 /spreadsheets/~$devices.xlsx
+/nornir_inventory/hosts.yaml
