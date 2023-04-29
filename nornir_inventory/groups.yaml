@@ -1,0 +1,30 @@
+---
+router: {}
+switch: {}
+nxos:
+  auth_strict_key: False
+  connection_options:
+    scrapli:
+      platform: cisco_nxos
+    netmiko:
+      platform: cisco_nxos_ssh
+    napalm:
+      platform: nxos
+ios_xe:
+  connection_options:
+    scrapli:
+      platform: cisco_iosxe
+    netmiko:
+      platform: cisco_iosxe
+    napalm:
+      platform: ios
+ios_xr:
+  connection_options:
+    scrapli:
+      platform: cisco_iosxr
+    netmiko:
+      platform: cisco_iosxr
+    napalm:
+      platform: iosxr
+
+
