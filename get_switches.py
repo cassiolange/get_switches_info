@@ -328,7 +328,7 @@ def generate_host_yaml(workbook, nornir_inventory_folder):
 
 def main():
 
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s', handlers=[logging.FileHandler('automation.log'),logging.StreamHandler()])
+    # logging.basicConfig(level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s', handlers=[logging.FileHandler('get_switches.log'),logging.StreamHandler()])
     parser = argparse.ArgumentParser(description='Python script to get switches configuration')
     #'Folder with Excel Files'
     parser.add_argument('-e', '--excel-folder', dest='spreadsheets_folder', required=False, default='spreadsheets/', help=argparse.SUPPRESS)
