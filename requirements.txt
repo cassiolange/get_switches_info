@@ -1,0 +1,7 @@
+openpyxl
+tqdm
+nornir
+nornir-napalm
+nornir-utils
+ntc-templates
+mac-vendor-lookup
