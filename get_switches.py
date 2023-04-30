@@ -50,7 +50,7 @@ def open_yaml_file(input_file):
 def check_and_clean_output_dir(output_dir):
 
     if not os.path.exists(output_dir):
-        os.mkdir(output_dir)
+        os.makedirs(output_dir, exist_ok=True)
     else:
         files = glob.glob(output_dir+'/*')
         for file in files:
@@ -265,9 +265,9 @@ def set_credentials(nr, username=None, password=None, secret=None):
     if not username:
         username = input("Enter username: ")
     if not password:
-        password = getpass.getpass()
+        password = getpass.getpass(prompt='Username Password: ')
     if not secret:
-        secret = getpass.getpass()
+        secret = getpass.getpass(prompt='Secret: ')
 
     nr.inventory.defaults.username = username
     nr.inventory.defaults.password = password
