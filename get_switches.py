@@ -14,33 +14,21 @@ from nornir_napalm.plugins.tasks import napalm_cli
 from openpyxl.worksheet.table import TableStyleInfo, Table
 from openpyxl.utils import get_column_letter
 import ntc_templates
+import sys
 
 
-def fetch_and_parse_cdp_neighbors(task):
+def fetch_and_parse_cli_commands(task):
     result_parsed = {}
-    result = task.run(task=napalm_cli, commands=['show cdp neighbors'])
-    if result:
-        result_parsed['show_cdp_neighbor'] = ntc_templates.parse.parse_output(platform='cisco_ios', command='show cdp neighbors', data=result[0].result['show cdp neighbors'])
+    error = {}
+    cli_results = task.run(task=napalm_cli, commands=['show cdp neighbors', 'show interfaces', 'show interface status', 'show interfaces switchport', 'show inventory'])
+    if not task.results.failed:
+        for result in cli_results:
+            for cli_task in result.result:
+                cli_parsed =  ntc_templates.parse.parse_output(platform='cisco_ios', command=cli_task, data=result.result[cli_task])
+                if cli_parsed:
+                    result_parsed[str(cli_task).replace(' ','_')] = cli_parsed
+
         return result_parsed
-
-
-    # parse_response = {}
-    # parse_response.update({'show_cdp_neighbor': {}})
-    # url = url_root.format(host=task.host.hostname)
-    # payload_cdp = payload
-    # payload_cdp[0]['params'].update({"cmd": "show cdp nei"})
-    # response = requests.post(
-    #     url,
-    #     headers=http_headers,
-    #     auth=(task.host.username, task.host.password),
-    #     verify=False,
-    #     data=json.dumps(payload_cdp)
-    # ).json()
-    # if 'result' in response and response['result'] != None:
-    #     parse_response['show_cdp_neighbor'] = response['result']['TABLE_cdp_neighbor_brief_info']['ROW_cdp_neighbor_brief_info']
-    #     return parse_response
-
-
 
 def open_yaml_file(input_file):
     input_text_folder_and_file = input_file
@@ -116,6 +104,9 @@ def add_data_to_excel_file(workbook, task_name, entries, switch_name):
                             except:
                                 mac_vendor = 'Not found'
                             workbook[task_name].cell(row=max_row, column=columns_names['mac_vendor'], value=mac_vendor)
+                        case 'trunking_vlans':
+                            trunk_vlans =' '.join(entry[column])
+                            workbook[task_name].cell(row=max_row, column=columns_names['trunking_vlans'], value=trunk_vlans)
                         case _:
                             workbook[task_name].cell(row=max_row, column=columns_names[column], value=entry[column])
     row = workbook[task_name].max_row
@@ -175,8 +166,43 @@ def write_results_to_excel_from_file(spreadsheets_folder, output_excel_file, out
                         ws = create_table(worksheet=ws, table_name=task, columns=columns)
                     wb = add_data_to_excel_file(workbook=wb, task_name=task, entries=switch_yaml[task], switch_name=current_switch_name)
 
+                case 'show_interfaces':
+                    if task not in wb:
+                        ws = wb.create_sheet(title=task)
+                        columns = ['device', 'interface', 'description', 'link_status', 'protocol_status', 'ip_address', 'speed', 'mtu', 'bandwidth']
+                        ws = create_table(worksheet=ws, table_name=task, columns=columns)
+                    wb = add_data_to_excel_file(workbook=wb, task_name=task, entries=switch_yaml[task], switch_name=current_switch_name)
 
-    wb.save(output_file)
+                case 'show_inventory':
+                    if task not in wb:
+                        ws = wb.create_sheet(title=task)
+                        columns = ['device', 'descr', 'pid', 'sn', 'vid']
+                        ws = create_table(worksheet=ws, table_name=task, columns=columns)
+                    wb = add_data_to_excel_file(workbook=wb, task_name=task, entries=switch_yaml[task], switch_name=current_switch_name)
+
+                case 'show_cdp_neighbors':
+                    if task not in wb:
+                        ws = wb.create_sheet(title=task)
+                        columns = ['device', 'local_interface', 'neighbor', 'neighbor_interface', 'platform']
+                        ws = create_table(worksheet=ws, table_name=task, columns=columns)
+                    wb = add_data_to_excel_file(workbook=wb, task_name=task, entries=switch_yaml[task], switch_name=current_switch_name)
+
+                case 'show_interface_status':
+                    if task not in wb:
+                        ws = wb.create_sheet(title=task)
+                        columns = ['device', 'port', 'name', 'speed', 'vlan', 'status', 'duplex']
+                        ws = create_table(worksheet=ws, table_name=task, columns=columns)
+                    wb = add_data_to_excel_file(workbook=wb, task_name=task, entries=switch_yaml[task], switch_name=current_switch_name)
+
+                case 'show_interfaces_switchport':
+                    if task not in wb:
+                        ws = wb.create_sheet(title=task)
+                        columns = ['device', 'interface', 'mode', 'switchport', 'switchport_monitor', 'switchport_negotiation', 'access_vlan', 'native_vlan', 'trunking_vlans', 'voice_vlan']
+                        ws = create_table(worksheet=ws, table_name=task, columns=columns)
+                    wb = add_data_to_excel_file(workbook=wb, task_name=task, entries=switch_yaml[task], switch_name=current_switch_name)
+
+    if wb.sheetnames:
+        wb.save(output_file)
 
 def format_and_write_switches_results_to_yaml(results, output_yaml_folder):
     if output_yaml_folder.endswith('/') == False:
@@ -220,14 +246,8 @@ def format_and_write_switches_results_to_yaml(results, output_yaml_folder):
     return yaml_data
 def tasks(task, napalm_get_bar):
     try:
-        # task.run(task=napalm_get, getters=['get_lldp_neighbors', 'get_bgp_neighbors', 'get_interfaces_ip'])
         task.run(task=napalm_get, getters=['get_mac_address_table', 'get_facts'])
-        task.run(fetch_and_parse_cdp_neighbors)
-        # task.run(fetch_and_parse_ospf_interfaces)
-        # task.run(fetch_and_parse_trunk_interfaces)
-        # task.run(fetch_and_parse_bfd_neighbors)
-        # task.run(fetch_and_parse_bgp_neighbors)
-        # task.run(fetch_and_parse_show_environment)
+        task.run(fetch_and_parse_cli_commands)
         napalm_get_bar.update()
         tqdm.tqdm.write(f"{task.host}: facts gathered")
     except:
@@ -307,6 +327,7 @@ def generate_host_yaml(workbook, nornir_inventory_folder):
     file.close()
 
 def main():
+
     logging.basicConfig(level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s', handlers=[logging.FileHandler('automation.log'),logging.StreamHandler()])
     parser = argparse.ArgumentParser(description='Python script to get switches configuration')
     #'Folder with Excel Files'
@@ -340,7 +361,7 @@ def main():
         wb = open_excel_file(device_excel_file)
         generate_host_yaml(workbook=wb, nornir_inventory_folder=args.nornir_inventory_folder)
         nr = nornir.InitNornir(config_file=args.nornir_config)
-        set_credentials(nr=nr, username='admin', password='1234QWer', secret='1234QWer')
+        set_credentials(nr=nr)
 
         with tqdm.tqdm(total=len(nr.inventory.hosts), desc="gathering facts", ) as napalm_bar:
             results = nr.run(task=tasks, napalm_get_bar=napalm_bar)

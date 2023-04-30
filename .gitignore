@@ -398,6 +398,6 @@ fabric.properties
 .idea/caches/build_file_checksums.ser
 
 *.log
-!/spreadsheets/~$devices.xlsx
 /spreadsheets/~$devices.xlsx
 /nornir_inventory/hosts.yaml
+/results_yaml/
